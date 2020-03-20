@@ -4,6 +4,8 @@
 import numpy as np
 import pandas as pd
 import xlrd
+import pickle
+
 # Read the divorce dataset downloaded from
 # http://archive.ics.uci.edu/ml/datasets/Divorce+Predictors+data+set
 df = pd.read_csv("divorce_data/divorce.csv")
@@ -28,15 +30,17 @@ standard_deviation.shape
 # testing values are for testing datasets values
 #
 # X_training - Attribute values in the training dataset
-# Y_training - Divorce outcomes for the training dataset
+# y_training - Divorce outcomes for the training dataset
 # X_testing - Attribute values in the testing dataset
-# Y_testing - Divorce outcomes for the testing dataset
+# y_testing - Divorce outcomes for the testing dataset
 
 from sklearn.model_selection import train_test_split
 X_training, X_testing, y_training, y_testing = train_test_split( X, Y, test_size=0.25, random_state=42)
 
 # Logistic Regression Algorithm
 from sklearn.linear_model import LogisticRegression
+from sklearn import model_selection
+
 lg = LogisticRegression(random_state=0,solver = "liblinear")
 # Create Model
 lg.fit(X_training,y_training)
@@ -48,6 +52,11 @@ print("Accuracy = ",((np.sum(y_predict==y_testing)/y_testing.shape[0])*100),"%",
 print (y_testing)
 
 print (y_predict)
+
+# Write this model to a file to be used during production inferencing
+training_model_file = 'divorce_prediction_model-Logistic_Regression_Algo.model'
+pickle.dump(lg, open(training_model_file, 'wb'))
+print("Wrote divorce prediction model to file", training_model_file) 
 
 # Naive Bayes Algorithm: Using the training and testing datasets, find
 # the accuracy of the algorithm
@@ -146,9 +155,19 @@ Yp = pdf.values[:,54]
 # Since Logistic Regression Algorithm provided the highest accuracy (100%),
 # we will use it to predict production data
 from sklearn.linear_model import LogisticRegression
-lg = LogisticRegression(random_state=0,solver = "liblinear")
-lg.fit(X_training,y_training)
-y_predict = lg.predict(Xp)
+
+# Read the Machine Learning model from a file use for production inferencing
+prod_model_file = 'divorce_prediction_model-Logistic_Regression_Algo.model'
+print("Trying to read divorce prediction model from file", prod_model_file) 
+prod_model = pickle.load(open(prod_model_file, 'rb'))
+print("Successfully read divorce prediction model from file:", prod_model_file) 
+prod_model_score_verify = prod_model.score(X_testing, y_testing)
+print("Verifying production model score")
+print(prod_model_score_verify)
+
+#klg = LogisticRegression(random_state=0,solver = "liblinear")
+#klg.fit(X_training,y_training)
+y_predict = prod_model.predict(Xp)
 print("Prediction (0 - not divorced, 1 - divorced) = ", y_predict)
 print("Actual Divorced or not (0 - not divorced, 1 - divorced) = ", Yp)
 print("Accuracy (Logistic Regression Algorithm) = ",((np.sum(y_predict==Yp)/y_testing.shape[0])*100),"%",sep="")
